@@ -1,23 +1,14 @@
 package it.ennova.rxwifi;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.support.annotation.NonNull;
-import android.util.Log;
-
-import java.util.List;
 
 import rx.Observable;
-import rx.Observer;
-import rx.functions.Action0;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.observables.SyncOnSubscribe;
-import rx.schedulers.Schedulers;
 import rx.subjects.ReplaySubject;
 
 /**
@@ -40,11 +31,13 @@ class ResultReceiver extends BroadcastReceiver {
      * This method implements a fluid API to start the scanning for new networks.
      */
     public ResultReceiver startScanningFrom(@NonNull Context context) {
-        context.registerReceiver(this, RxWifi.filter);
-        getWifiManager(context).startScan();
+        Context appCtx = context.getApplicationContext();
+        appCtx.registerReceiver(this, RxWifi.filter);
+        getWifiManager(appCtx).startScan();
         return this;
     }
 
+    @SuppressLint("WifiManagerPotentialLeak")
     private static WifiManager getWifiManager(@NonNull Context context) {
         return (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
     }
@@ -52,8 +45,10 @@ class ResultReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (WifiManager.SCAN_RESULTS_AVAILABLE_ACTION.equals(intent.getAction())) {
-            context.unregisterReceiver(this);
-            Observable.from((getWifiManager(context)).getScanResults())
+            Context appCtx = context.getApplicationContext();
+
+            appCtx.unregisterReceiver(this);
+            Observable.from(getWifiManager(appCtx).getScanResults())
                     .subscribe(subject);
         }
     }
